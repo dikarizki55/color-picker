@@ -74,6 +74,9 @@ export default function App() {
   const [draggingPinId, setDraggingPinId] = useState<number | null>(null);
   const [blurRadius, setBlurRadius] = useState<number>(0);
   const [blurInputStr, setBlurInputStr] = useState<string>("0");
+  const [zoomScale, setZoomScale] = useState<number>(1);
+  const [panOffset, setPanOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [interactionMode, setInteractionMode] = useState<"pick" | "pan">("pick");
 
   // Comparison state
   const [compareIdA, setCompareIdA] = useState<number | null>(null);
@@ -104,6 +107,13 @@ export default function App() {
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+
+  // Panning and pinching refs
+  const touchStartDist = useRef<number | null>(null);
+  const touchStartScale = useRef<number>(1);
+  const panStartOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const pointerStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Show auto-expiring toast notifications
   const showToast = (message: string, type: "info" | "error" = "info") => {
@@ -157,15 +167,26 @@ export default function App() {
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Apply blur to canvas backing store if set
+        // Apply blur to canvas backing store if set (using bilinear offscreen scaling for iOS compatibility)
         if (blurRadius > 0) {
-          ctx.filter = `blur(${blurRadius}px)`;
+          const tempCanvas = document.createElement("canvas");
+          const scale = 1 / (1 + blurRadius * 0.3);
+          
+          tempCanvas.width = Math.max(1, Math.round(canvas.width * scale));
+          tempCanvas.height = Math.max(1, Math.round(canvas.height * scale));
+          
+          const tempCtx = tempCanvas.getContext("2d");
+          if (tempCtx) {
+            tempCtx.imageSmoothingEnabled = true;
+            tempCtx.drawImage(imgRef.current, 0, 0, tempCanvas.width, tempCanvas.height);
+            
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+          }
         } else {
-          ctx.filter = "none";
+          ctx.drawImage(imgRef.current, 0, 0);
         }
-
-        ctx.drawImage(imgRef.current, 0, 0);
-        ctx.filter = "none"; // reset filter
 
         // Re-sample all existing pin swatches based on the blurred canvas values
         if (picks.length > 0) {
@@ -267,6 +288,9 @@ export default function App() {
     setCompareIdA(null);
     setCompareIdB(null);
     setBlurRadius(0);
+    setZoomScale(1);
+    setPanOffset({ x: 0, y: 0 });
+    setInteractionMode("pick");
   };
 
   // Clear all picked colors on current image
@@ -284,6 +308,63 @@ export default function App() {
     setBlurRadius(val);
   };
 
+  // Zoom button handlers
+  const handleZoomIn = () => {
+    setZoomScale((prev) => {
+      const next = Math.min(5, prev + 0.5);
+      return parseFloat(next.toFixed(2));
+    });
+  };
+
+  const handleZoomOut = () => {
+    setZoomScale((prev) => {
+      const next = Math.max(1, prev - 0.5);
+      if (next === 1) {
+        setPanOffset({ x: 0, y: 0 });
+      }
+      return parseFloat(next.toFixed(2));
+    });
+  };
+
+  const handleZoomReset = () => {
+    setZoomScale(1);
+    setPanOffset({ x: 0, y: 0 });
+  };
+
+  // Pinch-to-zoom mobile gesture handlers
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2) {
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+      
+      touchStartDist.current = dist;
+      touchStartScale.current = zoomScale;
+      panStartOffset.current = { ...panOffset };
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartDist.current !== null && e.touches.length === 2) {
+      const t1 = e.touches[0];
+      const t2 = e.touches[1];
+      const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+      
+      const ratio = dist / touchStartDist.current;
+      const newScale = Math.max(1, Math.min(5, touchStartScale.current * ratio));
+      
+      setZoomScale(parseFloat(newScale.toFixed(2)));
+
+      if (newScale === 1) {
+        setPanOffset({ x: 0, y: 0 });
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    touchStartDist.current = null;
+  };
+
   const handleManualInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valStr = e.target.value;
     setBlurInputStr(valStr);
@@ -297,6 +378,22 @@ export default function App() {
 
   const handleManualBlur = () => {
     setBlurInputStr(blurRadius.toString());
+  };
+
+  // Clamping pan coordinates so the image doesn't slide completely off the screen
+  const clampPan = (x: number, y: number, scale: number) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x, y };
+    if (scale <= 1) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+    const maxPanX = ((rect.width / scale) * (scale - 1)) / 2;
+    const maxPanY = ((rect.height / scale) * (scale - 1)) / 2;
+
+    return {
+      x: Math.max(-maxPanX, Math.min(maxPanX, x)),
+      y: Math.max(-maxPanY, Math.min(maxPanY, y)),
+    };
   };
 
   // Process coordinates and extract RGB data from pointer events
@@ -329,10 +426,20 @@ export default function App() {
       const b = imgData[2];
       const hex = rgbToHex(r, g, b);
 
+      // Loupe position relative to the unzoomed outer .canvas-wrapper
+      let loupeX = canvasX;
+      let loupeY = canvasY;
+      const wrapper = wrapperRef.current;
+      if (wrapper) {
+        const wRect = wrapper.getBoundingClientRect();
+        loupeX = e.clientX - wRect.left;
+        loupeY = e.clientY - wRect.top;
+      }
+
       setMagnifier({
         show: true,
-        x: canvasX,
-        y: canvasY,
+        x: loupeX,
+        y: loupeY,
         color: hex,
         rgb: { r, g, b },
         xPercent: xRel * 100,
@@ -350,22 +457,45 @@ export default function App() {
     setIsDragging(true);
     const canvas = e.currentTarget;
     canvas.setPointerCapture(e.pointerId);
+
+    if (interactionMode === "pan") {
+      pointerStartPos.current = { x: e.clientX, y: e.clientY };
+      panStartOffset.current = { ...panOffset };
+      return;
+    }
+
     processPointerEvent(e);
   };
 
   // Pointer Move
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDragging) return;
+
+    if (interactionMode === "pan") {
+      const deltaX = e.clientX - pointerStartPos.current.x;
+      const deltaY = e.clientY - pointerStartPos.current.y;
+      const newX = panStartOffset.current.x + deltaX;
+      const newY = panStartOffset.current.y + deltaY;
+      setPanOffset(clampPan(newX, newY, zoomScale));
+      return;
+    }
+
     processPointerEvent(e);
   };
 
   // Pointer Up (Commit the picked color)
   const handlePointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!isDragging || draggingPinId !== null) return;
+    if (!isDragging) return;
     setIsDragging(false);
 
     const canvas = e.currentTarget;
     canvas.releasePointerCapture(e.pointerId);
+
+    if (interactionMode === "pan") {
+      return;
+    }
+
+    if (draggingPinId !== null) return;
 
     // Final sample check
     processPointerEvent(e);
@@ -488,10 +618,20 @@ export default function App() {
         ),
       );
 
+      // Loupe position relative to the unzoomed outer .canvas-wrapper
+      let loupeX = canvasX;
+      let loupeY = canvasY;
+      const wrapper = wrapperRef.current;
+      if (wrapper) {
+        const wRect = wrapper.getBoundingClientRect();
+        loupeX = e.clientX - wRect.left;
+        loupeY = e.clientY - wRect.top;
+      }
+
       setMagnifier({
         show: true,
-        x: canvasX,
-        y: canvasY,
+        x: loupeX,
+        y: loupeY,
         color: hex,
         rgb: { r, g, b },
         xPercent: xRel * 100,
@@ -748,42 +888,71 @@ export default function App() {
             </div>
 
             {/* Interactive Canvas Viewport */}
-            <div className="canvas-wrapper">
+            <div ref={wrapperRef} className="canvas-wrapper">
+              {/* Floating Zoom & Mode Controls */}
+              <div className="zoom-controls-overlay">
+                {/* Select Mode / Pan Mode Switch */}
+                <div className="mode-toggle-group glass">
+                  <button
+                    className={`control-btn ${interactionMode === "pick" ? "active-mode" : ""}`}
+                    onClick={() => setInteractionMode("pick")}
+                    title="Select / Drop Pin Mode"
+                  >
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-6 6m0 0l-3-3m3 3V15" />
+                    </svg>
+                  </button>
+                  <button
+                    className={`control-btn ${interactionMode === "pan" ? "active-mode" : ""}`}
+                    onClick={() => setInteractionMode("pan")}
+                    title="Pan / Zoom Mode"
+                  >
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Zoom Actions Group */}
+                <div className="zoom-actions-group glass">
+                  <button className="control-btn" onClick={handleZoomIn} title="Zoom In">
+                    ＋
+                  </button>
+                  <span className="zoom-value-label">{zoomScale}x</span>
+                  <button className="control-btn" onClick={handleZoomOut} title="Zoom Out" disabled={zoomScale === 1}>
+                    －
+                  </button>
+                  <button className="control-btn" onClick={handleZoomReset} title="Reset View" disabled={zoomScale === 1 && panOffset.x === 0 && panOffset.y === 0}>
+                    ⟲
+                  </button>
+                </div>
+              </div>
+
+              {/* Zoomable / Pannable Workspace */}
               <div
                 style={{
                   position: "relative",
                   display: "inline-block",
                   maxWidth: "100%",
+                  transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale})`,
+                  transformOrigin: "center center",
+                  transition: isDragging ? "none" : "transform 0.15s ease-out",
+                  touchAction: "none",
                 }}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchEnd}
               >
                 <canvas
                   ref={canvasRef}
-                  className="studio-canvas"
-                  style={{ touchAction: "none" }} // crucial to prevent mobile swipe scrolling
+                  className={`studio-canvas ${interactionMode === "pan" ? "pan-cursor" : ""}`}
+                  style={{ touchAction: "none" }}
                   onPointerDown={handlePointerDown}
                   onPointerMove={handlePointerMove}
                   onPointerUp={handlePointerUp}
                   onPointerCancel={handlePointerCancel}
                 />
-
-                {/* Floating Magnifier Loupe */}
-                {magnifier.show && (
-                  <div
-                    className="loupe"
-                    style={{
-                      left: `${magnifier.x}px`,
-                      top: `${magnifier.y}px`,
-                    }}
-                  >
-                    <canvas
-                      ref={loupeCanvasRef}
-                      width={120}
-                      height={120}
-                      className="loupe-canvas"
-                    />
-                    <div className="loupe-crosshair" />
-                  </div>
-                )}
 
                 {/* Render circular interactive pin markers on canvas coordinates */}
                 {picks.map((pick) => (
@@ -805,6 +974,25 @@ export default function App() {
                   </div>
                 ))}
               </div>
+
+              {/* Floating Magnifier Loupe (Rendered outside of the scaled inner container so it remains unscaled) */}
+              {magnifier.show && (
+                <div
+                  className="loupe"
+                  style={{
+                    left: `${magnifier.x}px`,
+                    top: `${magnifier.y}px`,
+                  }}
+                >
+                  <canvas
+                    ref={loupeCanvasRef}
+                    width={120}
+                    height={120}
+                    className="loupe-canvas"
+                  />
+                  <div className="loupe-crosshair" />
+                </div>
+              )}
             </div>
 
             {/* Noise Reducer (Blur) Control Panel */}
