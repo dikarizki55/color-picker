@@ -32,7 +32,7 @@
   width: 28px;
   height: 28px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, #a78bfa, #8b5cf6, #3b82f6);
+  background: linear-gradient(135deg, #8ba3fa, #5c6ef6, #3b82f6);
   box-shadow: 0 0 10px rgba(139, 92, 246, 0.4);
 }
 

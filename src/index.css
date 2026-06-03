@@ -6,23 +6,27 @@
   --bg-surface-hover: #222731;
   --border-light: rgba(255, 255, 255, 0.08);
   --border-medium: rgba(255, 255, 255, 0.15);
-  
+
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-tertiary: #64748b;
-  
-  --accent: #8b5cf6;
-  --accent-glow: rgba(139, 92, 246, 0.3);
-  --accent-light: #a78bfa;
-  
+
+  --accent: #3078fe;
+  --accent-glow: rgba(92, 164, 246, 0.3);
+  --accent-light: #8baafa;
+
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
   --color-info: #3b82f6;
 
   /* Typography */
-  --font-sans: 'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans:
+    "Outfit", "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
 
   /* Spacing & Borders */
   --radius-sm: 8px;
@@ -77,7 +81,12 @@ body {
 }
 
 /* Typography elements */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.25;
@@ -101,24 +110,46 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes pulseBorder {
-  0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4); }
-  70% { box-shadow: 0 0 0 8px rgba(139, 92, 246, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(139, 92, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+  }
 }
 
 /* Magnifier / Loupe Styling */
@@ -128,7 +159,9 @@ h1, h2, h3, h4, h5, h6 {
   height: 120px;
   border-radius: 50%;
   border: 4px solid var(--text-primary);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.5),
+    inset 0 0 10px rgba(0, 0, 0, 0.5);
   pointer-events: none;
   overflow: hidden;
   z-index: 100;
@@ -151,7 +184,7 @@ h1, h2, h3, h4, h5, h6 {
   transform: translate(-50%, -50%);
   border: 2px solid var(--text-primary);
   border-radius: 2px;
-  box-shadow: 0 0 2px rgba(0,0,0,0.5);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
   pointer-events: none;
 }
 
@@ -177,7 +210,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .glow-btn {
-  background: linear-gradient(135deg, var(--accent), #6d28d9);
+  background: linear-gradient(135deg, var(--accent), #2842d9);
   color: white;
   border: none;
   font-weight: 600;
