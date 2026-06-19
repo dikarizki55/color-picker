@@ -4,12 +4,14 @@ import {
   rgbToHex,
   rgbToHsl,
   rgbToLab,
+  rgbToCmyk,
   deltaE00,
   deltaE76,
   getDeltaEInterpretation,
   type LAB,
   type HSL,
   type RGB,
+  type CMYK,
 } from "./utils/colorConversions";
 
 interface ColorPick {
@@ -18,6 +20,7 @@ interface ColorPick {
   rgb: RGB;
   lab: LAB;
   hsl: HSL;
+  cmyk: CMYK;
   xPercent: number; // percentage coordinate relative to canvas
   yPercent: number;
 }
@@ -516,6 +519,7 @@ export default function App() {
     const hex = magnifier.color;
     const hsl = rgbToHsl(r, g, b);
     const lab = rgbToLab(r, g, b);
+    const cmyk = rgbToCmyk(r, g, b);
 
     // Find next available pin ID number (1-6)
     const activeIds = picks.map((p) => p.id);
@@ -533,6 +537,7 @@ export default function App() {
       rgb: { r, g, b },
       hsl,
       lab,
+      cmyk,
       xPercent: magnifier.xPercent,
       yPercent: magnifier.yPercent,
     };
@@ -1051,6 +1056,40 @@ export default function App() {
               </div>
             </div>
 
+            {/* Delta E Compact Shortcut */}
+            {colorA && colorB && (
+              <div className="delta-shortcut-bar">
+                <div className="delta-shortcut-left">
+                  <span className={`delta-shortcut-score ${deltaInterpretation?.className || ""}`}>{delta00Score}</span>
+                  <div>
+                    <div className="delta-shortcut-label">ΔE₀₀</div>
+                    {deltaInterpretation && (
+                      <div className={`delta-shortcut-badge ${deltaInterpretation.className}`}>
+                        {deltaInterpretation.rating}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {deltaInterpretation && (
+                  <div className="delta-shortcut-gauge">
+                    <div
+                      className={`delta-shortcut-gauge-fill ${deltaInterpretation.className}`}
+                      style={{ width: `${deltaInterpretation.percent}%` }}
+                    />
+                  </div>
+                )}
+                <div className="delta-shortcut-pin-labels">
+                  <span className="delta-shortcut-pin-dot" style={{ backgroundColor: colorA.color }}>
+                    {colorA.id}
+                  </span>
+                  <span>vs</span>
+                  <span className="delta-shortcut-pin-dot" style={{ backgroundColor: colorB.color }}>
+                    {colorB.id}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Picked Colors List Section */}
             <div className="colors-grid-section">
               <div className="section-hdr">
@@ -1133,6 +1172,13 @@ export default function App() {
                     <p>
                       H: {activePick.hsl.h}° S: {activePick.hsl.s}% L:{" "}
                       {activePick.hsl.l}%
+                    </p>
+                  </div>
+                  <div className="details-val-col">
+                    <h5>CMYK</h5>
+                    <p>
+                      C: {activePick.cmyk.c}% M: {activePick.cmyk.m}% Y:{" "}
+                      {activePick.cmyk.y}% K: {activePick.cmyk.k}%
                     </p>
                   </div>
                 </div>
@@ -1337,6 +1383,50 @@ export default function App() {
                           className={`comp-cell diff ${formatDiff(colorA.hsl.l, colorB.hsl.l, "%").className}`}
                         >
                           {formatDiff(colorA.hsl.l, colorB.hsl.l, "%").text}
+                        </div>
+                      </div>
+
+                      <div className="comp-table-row">
+                        <div className="comp-cell metric">Cyan (C)</div>
+                        <div className="comp-cell val-a">{colorA.cmyk.c}%</div>
+                        <div className="comp-cell val-b">{colorB.cmyk.c}%</div>
+                        <div
+                          className={`comp-cell diff ${formatDiff(colorA.cmyk.c, colorB.cmyk.c, "%").className}`}
+                        >
+                          {formatDiff(colorA.cmyk.c, colorB.cmyk.c, "%").text}
+                        </div>
+                      </div>
+
+                      <div className="comp-table-row">
+                        <div className="comp-cell metric">Magenta (M)</div>
+                        <div className="comp-cell val-a">{colorA.cmyk.m}%</div>
+                        <div className="comp-cell val-b">{colorB.cmyk.m}%</div>
+                        <div
+                          className={`comp-cell diff ${formatDiff(colorA.cmyk.m, colorB.cmyk.m, "%").className}`}
+                        >
+                          {formatDiff(colorA.cmyk.m, colorB.cmyk.m, "%").text}
+                        </div>
+                      </div>
+
+                      <div className="comp-table-row">
+                        <div className="comp-cell metric">Yellow (Y)</div>
+                        <div className="comp-cell val-a">{colorA.cmyk.y}%</div>
+                        <div className="comp-cell val-b">{colorB.cmyk.y}%</div>
+                        <div
+                          className={`comp-cell diff ${formatDiff(colorA.cmyk.y, colorB.cmyk.y, "%").className}`}
+                        >
+                          {formatDiff(colorA.cmyk.y, colorB.cmyk.y, "%").text}
+                        </div>
+                      </div>
+
+                      <div className="comp-table-row">
+                        <div className="comp-cell metric">Key (K)</div>
+                        <div className="comp-cell val-a">{colorA.cmyk.k}%</div>
+                        <div className="comp-cell val-b">{colorB.cmyk.k}%</div>
+                        <div
+                          className={`comp-cell diff ${formatDiff(colorA.cmyk.k, colorB.cmyk.k, "%").className}`}
+                        >
+                          {formatDiff(colorA.cmyk.k, colorB.cmyk.k, "%").text}
                         </div>
                       </div>
                     </div>

@@ -16,6 +16,13 @@ export interface RGB {
   b: number;
 }
 
+export interface CMYK {
+  c: number;
+  m: number;
+  y: number;
+  k: number;
+}
+
 // Convert Hex string to RGB object
 export function hexToRgb(hex: string): RGB | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -132,6 +139,26 @@ export function xyzToLab(x: number, y: number, z: number): LAB {
 export function rgbToLab(r: number, g: number, b: number): LAB {
   const { x, y, z } = rgbToXyz(r, g, b);
   return xyzToLab(x, y, z);
+}
+
+// Convert RGB to CMYK
+export function rgbToCmyk(r: number, g: number, b: number): CMYK {
+  const rN = r / 255;
+  const gN = g / 255;
+  const bN = b / 255;
+
+  const k = 1 - Math.max(rN, gN, bN);
+
+  if (k === 1) {
+    return { c: 0, m: 0, y: 0, k: 100 };
+  }
+
+  return {
+    c: parseFloat((((1 - rN - k) / (1 - k)) * 100).toFixed(1)),
+    m: parseFloat((((1 - gN - k) / (1 - k)) * 100).toFixed(1)),
+    y: parseFloat((((1 - bN - k) / (1 - k)) * 100).toFixed(1)),
+    k: parseFloat((k * 100).toFixed(1)),
+  };
 }
 
 // Calculate CIE76 color difference (Euclidean distance in L*a*b* space)

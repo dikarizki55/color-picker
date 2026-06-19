@@ -452,7 +452,7 @@
 
 .details-values-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 12px;
   background: rgba(0, 0, 0, 0.2);
   padding: 8px;
@@ -473,6 +473,98 @@
   font-weight: 500;
   color: var(--text-primary);
 }
+
+/* Delta E shortcut bar between image and swatches */
+.delta-shortcut-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 16px 12px;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid var(--accent-border);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.delta-shortcut-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delta-shortcut-score {
+  font-size: 1.3rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+.delta-shortcut-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  letter-spacing: 0.04em;
+}
+
+.delta-shortcut-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+
+}
+
+.delta-shortcut-pins {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.delta-shortcut-gauge {
+  flex: 1;
+  min-width: 60px;
+  max-width: 120px;
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.delta-shortcut-gauge-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.3s ease;
+}
+
+.delta-shortcut-pin-labels {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.delta-shortcut-pin-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+.delta-shortcut-score.delta-imperceptible { color: var(--color-success); }
+.delta-shortcut-score.delta-slight { color: var(--color-info); }
+.delta-shortcut-score.delta-noticeable { color: var(--color-warning); }
+.delta-shortcut-score.delta-distinguishable { color: var(--color-danger); }
+.delta-shortcut-score.delta-different { color: #ff8a8a; }
 
 /* Delta Calculator Section */
 .comparison-section {
