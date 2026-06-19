@@ -968,6 +968,7 @@ export default function App() {
                       top: `${pick.yPercent}%`,
                       backgroundColor: pick.color,
                       touchAction: "none",
+                      transform: `translate(-50%, -50%) scale(${(draggingPinId === pick.id ? 1.3 : activePickId === pick.id ? 1.2 : 1) / zoomScale})`,
                     }}
                   >
                     {pick.id}
