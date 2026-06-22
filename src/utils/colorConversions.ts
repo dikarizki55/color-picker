@@ -1,3 +1,5 @@
+import convert from "color-convert";
+
 export interface LAB {
   l: number;
   a: number;
@@ -83,81 +85,24 @@ export function rgbToHsl(r: number, g: number, b: number): HSL {
   };
 }
 
-// Convert RGB to XYZ (D65 white point)
-export function rgbToXyz(r: number, g: number, b: number) {
-  let rL = r / 255;
-  let gL = g / 255;
-  let bL = b / 255;
-
-  rL = rL > 0.04045 ? Math.pow((rL + 0.055) / 1.055, 2.4) : rL / 12.92;
-  gL = gL > 0.04045 ? Math.pow((gL + 0.055) / 1.055, 2.4) : gL / 12.92;
-  bL = bL > 0.04045 ? Math.pow((bL + 0.055) / 1.055, 2.4) : bL / 12.92;
-
-  rL *= 100;
-  gL *= 100;
-  bL *= 100;
-
-  // Reference D65 Matrix conversion
-  const x = rL * 0.4124 + gL * 0.3576 + bL * 0.1805;
-  const y = rL * 0.2126 + gL * 0.7152 + bL * 0.0722;
-  const z = rL * 0.0193 + gL * 0.1192 + bL * 0.9505;
-
-  return { x, y, z };
-}
-
-// Convert XYZ to CIE L*a*b*
-export function xyzToLab(x: number, y: number, z: number): LAB {
-  // D65 Standard Illuminant Reference White points
-  const xRef = 95.047;
-  const yRef = 100.0;
-  const zRef = 108.883;
-
-  let xN = x / xRef;
-  let yN = y / yRef;
-  let zN = z / zRef;
-
-  const f = (t: number) => {
-    return t > 0.008856 ? Math.pow(t, 1 / 3) : 7.787 * t + 16 / 116;
-  };
-
-  const fx = f(xN);
-  const fy = f(yN);
-  const fz = f(zN);
-
-  const l = 116 * fy - 16;
-  const a = 500 * (fx - fy);
-  const b = 200 * (fy - fz);
-
+// Convert RGB to CIE L*a*b* directly
+export function rgbToLab(r: number, g: number, b: number): LAB {
+  const [l, a, _b] = convert.rgb.lab.raw(r, g, b);
   return {
     l: parseFloat(l.toFixed(2)),
     a: parseFloat(a.toFixed(2)),
-    b: parseFloat(b.toFixed(2)),
+    b: parseFloat(_b.toFixed(2)),
   };
-}
-
-// Convert RGB to CIE L*a*b* directly
-export function rgbToLab(r: number, g: number, b: number): LAB {
-  const { x, y, z } = rgbToXyz(r, g, b);
-  return xyzToLab(x, y, z);
 }
 
 // Convert RGB to CMYK
 export function rgbToCmyk(r: number, g: number, b: number): CMYK {
-  const rN = r / 255;
-  const gN = g / 255;
-  const bN = b / 255;
-
-  const k = 1 - Math.max(rN, gN, bN);
-
-  if (k === 1) {
-    return { c: 0, m: 0, y: 0, k: 100 };
-  }
-
+  const [c, m, y, k] = convert.rgb.cmyk.raw(r, g, b);
   return {
-    c: parseFloat((((1 - rN - k) / (1 - k)) * 100).toFixed(1)),
-    m: parseFloat((((1 - gN - k) / (1 - k)) * 100).toFixed(1)),
-    y: parseFloat((((1 - bN - k) / (1 - k)) * 100).toFixed(1)),
-    k: parseFloat((k * 100).toFixed(1)),
+    c: parseFloat(c.toFixed(1)),
+    m: parseFloat(m.toFixed(1)),
+    y: parseFloat(y.toFixed(1)),
+    k: parseFloat(k.toFixed(1)),
   };
 }
 
