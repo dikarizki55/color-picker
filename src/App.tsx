@@ -48,6 +48,10 @@ const SAMPLE_IMAGES = [
     name: "Pastel Macarons",
     url: "https://images.unsplash.com/photo-1569864358642-9d1684040f43?q=80&w=800&auto=format&fit=crop",
   },
+  {
+    name: "Color Pallet",
+    url: "https://images.unsplash.com/photo-1635536816492-9a6fb49354d3?q=80&w=756&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  },
 ];
 
 const formatDiff = (
@@ -1979,6 +1983,149 @@ export default function App() {
       );
   }
 
+    // ============================================================
+  // COLOR ADJUSTMENT GUIDANCE
+  // ============================================================
+
+  const getColorAdjustmentGuidance = () => {
+    if (!colorA || !colorB) {
+      return null;
+    }
+
+    const tolerance = 0.5;
+
+    const cmyk = [
+      {
+        key: "c",
+        label: "Cyan",
+        valueA: colorA.cmyk.c,
+        valueB: colorB.cmyk.c,
+      },
+      {
+        key: "m",
+        label: "Magenta",
+        valueA: colorA.cmyk.m,
+        valueB: colorB.cmyk.m,
+      },
+      {
+        key: "y",
+        label: "Yellow",
+        valueA: colorA.cmyk.y,
+        valueB: colorB.cmyk.y,
+      },
+      {
+        key: "k",
+        label: "Black",
+        valueA: colorA.cmyk.k,
+        valueB: colorB.cmyk.k,
+      },
+    ];
+
+    const lab = [
+      {
+        key: "l",
+        label: "Lightness",
+        valueA: colorA.lab.l,
+        valueB: colorB.lab.l,
+      },
+      {
+        key: "a",
+        label: "Red / Green",
+        valueA: colorA.lab.a,
+        valueB: colorB.lab.a,
+      },
+      {
+        key: "b",
+        label: "Yellow / Blue",
+        valueA: colorA.lab.b,
+        valueB: colorB.lab.b,
+      },
+    ];
+
+    const getDirection = (
+      valueA: number,
+      valueB: number,
+      positiveText: string,
+      negativeText: string,
+    ) => {
+      const difference = valueA - valueB;
+
+      if (Math.abs(difference) <= tolerance) {
+        return {
+          direction: "No significant change",
+          difference: 0,
+          className: "neutral",
+        };
+      }
+
+      if (difference > 0) {
+        return {
+          direction: positiveText,
+          difference,
+          className: "increase",
+        };
+      }
+
+      return {
+        direction: negativeText,
+        difference,
+        className: "decrease",
+      };
+    };
+
+    const cmykGuidance = cmyk.map((item) => {
+      const result = getDirection(
+        item.valueA,
+        item.valueB,
+        `Need more ${item.label}`,
+        `Need less ${item.label}`,
+      );
+
+      return {
+        ...item,
+        ...result,
+      };
+    });
+
+    const labGuidance = [
+      {
+        ...lab[0],
+        ...getDirection(
+          lab[0].valueA,
+          lab[0].valueB,
+          "Need brighter",
+          "Need darker",
+        ),
+      },
+      {
+        ...lab[1],
+        ...getDirection(
+          lab[1].valueA,
+          lab[1].valueB,
+          "Need more Red",
+          "Need more Green",
+        ),
+      },
+      {
+        ...lab[2],
+        ...getDirection(
+          lab[2].valueA,
+          lab[2].valueB,
+          "Need more Yellow",
+          "Need more Blue",
+        ),
+      },
+    ];
+
+    return {
+      cmyk: cmykGuidance,
+      lab: labGuidance,
+    };
+  };
+
+  const adjustmentGuidance =
+    getColorAdjustmentGuidance();
+
   // ============================================================
   // RENDER
   // ============================================================
@@ -2606,6 +2753,94 @@ export default function App() {
               </div>
 
               {/* ==================================================
+                  DELTA SHORTCUT
+              ================================================== */}
+
+{colorA &&
+                colorB && (
+                  <div className="delta-shortcut-bar">
+
+                    <div className="delta-shortcut-left">
+
+                      <span
+                        className={`delta-shortcut-score ${
+                          deltaInterpretation?.className ||
+                          ""
+                        }`}
+                      >
+                        {delta00Score}
+                      </span>
+
+                      <div>
+
+                        <div className="delta-shortcut-label">
+                          ΔE₀₀
+                        </div>
+
+                        {deltaInterpretation && (
+                          <div
+                            className={`delta-shortcut-badge ${deltaInterpretation.className}`}
+                          >
+                            {
+                              deltaInterpretation.rating
+                            }
+                          </div>
+                        )}
+
+                      </div>
+
+                    </div>
+
+                    {deltaInterpretation && (
+                      <div className="delta-shortcut-gauge">
+
+                        <div
+                          className={`delta-shortcut-gauge-fill ${deltaInterpretation.className}`}
+                          style={{
+                            width: `${deltaInterpretation.percent}%`,
+                          }}
+                        />
+
+                      </div>
+                    )}
+
+                    <div className="delta-shortcut-pin-labels">
+
+                      <span
+                        className="delta-shortcut-pin-dot"
+                        style={{
+                          backgroundColor:
+                            colorA.color,
+                        }}
+                      >
+                        {
+                          colorA.id
+                        }
+                      </span>
+
+                      <span>
+                        vs
+                      </span>
+
+                      <span
+                        className="delta-shortcut-pin-dot"
+                        style={{
+                          backgroundColor:
+                            colorB.color,
+                        }}
+                      >
+                        {
+                          colorB.id
+                        }
+                      </span>
+
+                    </div>
+
+                  </div>
+                )}
+
+
+              {/* ==================================================
                   WHITE BALANCE PANEL
               ================================================== */}
 
@@ -2990,93 +3225,6 @@ export default function App() {
                   </strong>
                 </div>
               )}
-
-              {/* ==================================================
-                  DELTA SHORTCUT
-              ================================================== */}
-
-              {colorA &&
-                colorB && (
-                  <div className="delta-shortcut-bar">
-
-                    <div className="delta-shortcut-left">
-
-                      <span
-                        className={`delta-shortcut-score ${
-                          deltaInterpretation?.className ||
-                          ""
-                        }`}
-                      >
-                        {delta00Score}
-                      </span>
-
-                      <div>
-
-                        <div className="delta-shortcut-label">
-                          ΔE₀₀
-                        </div>
-
-                        {deltaInterpretation && (
-                          <div
-                            className={`delta-shortcut-badge ${deltaInterpretation.className}`}
-                          >
-                            {
-                              deltaInterpretation.rating
-                            }
-                          </div>
-                        )}
-
-                      </div>
-
-                    </div>
-
-                    {deltaInterpretation && (
-                      <div className="delta-shortcut-gauge">
-
-                        <div
-                          className={`delta-shortcut-gauge-fill ${deltaInterpretation.className}`}
-                          style={{
-                            width: `${deltaInterpretation.percent}%`,
-                          }}
-                        />
-
-                      </div>
-                    )}
-
-                    <div className="delta-shortcut-pin-labels">
-
-                      <span
-                        className="delta-shortcut-pin-dot"
-                        style={{
-                          backgroundColor:
-                            colorA.color,
-                        }}
-                      >
-                        {
-                          colorA.id
-                        }
-                      </span>
-
-                      <span>
-                        vs
-                      </span>
-
-                      <span
-                        className="delta-shortcut-pin-dot"
-                        style={{
-                          backgroundColor:
-                            colorB.color,
-                        }}
-                      >
-                        {
-                          colorB.id
-                        }
-                      </span>
-
-                    </div>
-
-                  </div>
-                )}
 
               {/* ==================================================
                   PICKED COLORS
@@ -3600,6 +3748,137 @@ export default function App() {
                           </div>
 
                         </div>
+
+                        {/* =================================================
+                            COLOR ADJUSTMENT GUIDANCE
+                        ================================================= */}
+
+                        {adjustmentGuidance && (
+                          <div className="adjustment-guidance">
+
+                            <div className="adjustment-guidance-header">
+                              <div>
+                                <div className="adjustment-guidance-title">
+                                  WHAT NEEDS TO CHANGE?
+                                </div>
+
+                                <div className="adjustment-guidance-subtitle">
+                                  Adjustment needed to make Color B like Color A
+                                </div>
+                              </div>
+
+                              <div className="adjustment-direction">
+                                B → A
+                              </div>
+                            </div>
+
+
+                            {/* =========================
+                                CMYK
+                            ========================= */}
+
+                            <div className="adjustment-section">
+
+                              <div className="adjustment-section-title">
+                                CMYK
+                              </div>
+
+                              <div className="adjustment-grid">
+
+                                {adjustmentGuidance.cmyk.map(
+                                  (item) => (
+                                    <div
+                                      className={`adjustment-item ${item.className}`}
+                                      key={item.key}
+                                    >
+
+                                      <div className="adjustment-item-label">
+                                        {item.label}
+                                      </div>
+
+                                      <div className="adjustment-item-main">
+
+                                        <span className="adjustment-direction-text">
+                                          {item.direction}
+                                        </span>
+
+                                        {item.difference !== 0 && (
+                                          <span className="adjustment-value">
+                                            {Math.abs(item.difference).toFixed(1)}%
+                                          </span>
+                                        )}
+
+                                      </div>
+
+                                      <div className="adjustment-item-values">
+                                        {item.valueA.toFixed(1)}%
+                                        <span>→</span>
+                                        {item.valueB.toFixed(1)}%
+                                      </div>
+
+                                    </div>
+                                  ),
+                                )}
+
+                              </div>
+
+                            </div>
+
+
+                            {/* =========================
+                                LAB
+                            ========================= */}
+
+                            <div className="adjustment-section">
+
+                              <div className="adjustment-section-title">
+                                LAB
+                              </div>
+
+                              <div className="adjustment-grid">
+
+                                {adjustmentGuidance.lab.map(
+                                  (item) => (
+                                    <div
+                                      className={`adjustment-item ${item.className}`}
+                                      key={item.key}
+                                    >
+
+                                      <div className="adjustment-item-label">
+                                        {item.label}
+                                      </div>
+
+                                      <div className="adjustment-item-main">
+
+                                        <span className="adjustment-direction-text">
+                                          {item.direction}
+                                        </span>
+
+                                        {item.difference !== 0 && (
+                                          <span className="adjustment-value">
+                                            {Math.abs(item.difference).toFixed(1)}
+                                          </span>
+                                        )}
+
+                                      </div>
+
+                                      <div className="adjustment-item-values">
+                                        {item.valueA.toFixed(1)}
+                                        <span>→</span>
+                                        {item.valueB.toFixed(1)}
+                                      </div>
+
+                                    </div>
+                                  ),
+                                )}
+
+                              </div>
+
+                            </div>
+
+                          </div>
+                        )}
+
 
                         {/* =================================================
                             COMPARISON TABLE
