@@ -922,11 +922,15 @@ export default function App() {
   // ============================================================
 
   const handleSamplingChange = (
-    e: React.ChangeEvent<HTMLSelectElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement
+    >,
   ) => {
-    setSamplingSize(
-      Number(e.target.value),
-    );
+    const value = Number(e.target.value);
+  
+    if (value >= 1) {
+      setSamplingSize(value);
+    }
   };
 
   // ============================================================
