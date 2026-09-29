@@ -3131,6 +3131,17 @@ export default function App() {
 
                 <div className="blur-controls">
 
+                  <input type="number" 
+                  min={1}
+                  value={
+                    samplingSize
+                  }
+                  onChange={
+                    handleSamplingChange
+                  }
+                  className="color-dropdown"
+                  name="" id="" />
+
                   <select
                     value={
                       samplingSize
@@ -3170,6 +3181,14 @@ export default function App() {
 
                     <option value={35}>
                       35 × 35 pixels
+                    </option>
+
+                    <option value={50}>
+                      50 × 50 pixels
+                    </option>
+
+                    <option value={100}>
+                      100 × 100 pixels
                     </option>
                   </select>
 
